@@ -1,6 +1,3 @@
-Here’s a professional and clear **README** file for your project that explains the setup, steps, and usage of the serial communication between the Raspberry Pi and the EK-TM4C123GXL.
-
----
 
 # Serial Communication Between Raspberry Pi and EK-TM4C123GXL
 
