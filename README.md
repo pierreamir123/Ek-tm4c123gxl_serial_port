@@ -160,12 +160,3 @@ finally:
    Then log out and log back in.
 
 ---
-
-## Conclusion
-This project successfully demonstrates serial communication between the Raspberry Pi and the EK-TM4C123GXL. You can expand this setup for more complex applications, such as sending sensor data or controlling actuators.
-
-For questions or issues, feel free to open an issue in this repository or contact the author.
-
----
-
-**Happy Coding!** 🚀
