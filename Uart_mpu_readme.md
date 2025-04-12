@@ -83,8 +83,8 @@ int main(void) {
         float temp = (temp_raw / 340.0f) + 36.53f;
 
         char buffer[128];
-        snprintf(buffer, sizeof(buffer), "Accel: %d,%d,%d Gyro: %d,%d,%d Temp: %.2f\n",
-                 ax, ay, az, gx, gy, gz, temp);
+        snprintf(buffer, sizeof(buffer), "Accel: %d,%d,%d Gyro: %d,%d,%d Temp: %.2f\n",(int)ax, (int)ay, (int)az, (int)gx, (int)gy, (int)gz, temp);
+
 
         UART_SendString(buffer);
         SysCtlDelay(SysCtlClockGet() / 10);
