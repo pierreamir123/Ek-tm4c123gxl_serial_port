@@ -215,12 +215,3 @@ Temperature: 25.67°C
 1. **I2C Issues**: Use an I2C scanner to verify the MPU6050 address (`0x68`).
 2. **Serial Port Issues**: Double-check the serial port name (`/dev/ttyUSB0` or `/dev/ttyACM0`) and permissions.
 3. **Data Parsing Errors**: Ensure the transmitted string format matches the parsing logic in the Python script.
-
----
-
-## Conclusion
-This project successfully demonstrates reading MPU6050 data on the Raspberry Pi via serial communication. You can extend this setup for applications like sensor logging, robotics, or IoT projects.
-
-For questions or issues, feel free to ask!
-
-**Happy Coding!** 🚀
