@@ -1,0 +1,32 @@
+import serial
+import time
+
+SERIAL_PORT = '/dev/ttyUSB0'  # Replace with your actual port (e.g., /dev/ttyACM0)
+BAUD_RATE = 115200
+
+try:
+    ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+    print(f"Connected to {SERIAL_PORT} at {BAUD_RATE} baud.")
+except Exception as e:
+    print(f"Error opening serial port: {e}")
+    exit()
+
+try:
+    while True:
+        if ser.in_waiting > 0:
+            data = ser.readline().decode('utf-8').strip()
+            print(f"Received: {data}")
+
+            if data.startswith("Accel:") and "Gyro:" in data and "Temp:" in data:
+                parts = data.split()
+                accel = parts[1].split(",")
+                gyro = parts[3].split(",")
+                temp = float(parts[5])
+
+                print(f"Accelerometer: X={accel[0]}, Y={accel[1]}, Z={accel[2]}")
+                print(f"Gyroscope: X={gyro[0]}, Y={gyro[1]}, Z={gyro[2]}")
+                print(f"Temperature: {temp}°C")
+except KeyboardInterrupt:
+    print("Exiting...")
+finally:
+    ser.close()
