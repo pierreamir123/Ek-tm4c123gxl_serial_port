@@ -38,7 +38,10 @@ try:
                 ax_ms2 = ax_g * GRAVITY
                 ay_ms2 = ay_g * GRAVITY
                 az_ms2 = az_g * GRAVITY
-
+                # Convert raw accelerometer values to float
+                ax_raw = float(ax_g) * SENSITIVITY_FACTOR
+                ay_raw = float(ay_g) * SENSITIVITY_FACTOR
+                az_raw = float(az_g) * SENSITIVITY_FACTOR
                 # Print the parsed data
                 print(f"Accelerometer: X={ax_raw}, Y={ay_raw}, Z={az_raw}")
                 print(f"Gyroscope: X={gyro[0]}, Y={gyro[1]}, Z={gyro[2]}")
