@@ -17,6 +17,7 @@ void UART_Init(void);
 uint8_t I2C_ReadByte(uint8_t reg);
 void I2C_WriteByte(uint8_t reg, uint8_t value);
 void UART_SendString(const char *str);
+void IntToStr(int value, char *buffer);
 
 int main(void) {
     SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
@@ -48,49 +49,85 @@ int main(void) {
         
         char numBuffer[8];
         // Convert ax to string
-        itoa((int)ax, numBuffer, 10);
+        IntToStr((int)ax, numBuffer);
         UART_SendString(numBuffer);
         UART_SendString(",");
         
         // Convert ay to string
-        itoa((int)ay, numBuffer, 10);
+        IntToStr((int)ay, numBuffer);
         UART_SendString(numBuffer);
         UART_SendString(",");
         
         // Convert az to string
-        itoa((int)az, numBuffer, 10);
+        IntToStr((int)az, numBuffer);
         UART_SendString(numBuffer);
         UART_SendString(" Gyro: ");
         
         // Convert gx to string
-        itoa((int)gx, numBuffer, 10);
+        IntToStr((int)gx, numBuffer);
         UART_SendString(numBuffer);
         UART_SendString(",");
         
         // Convert gy to string
-        itoa((int)gy, numBuffer, 10);
+        IntToStr((int)gy, numBuffer);
         UART_SendString(numBuffer);
         UART_SendString(",");
         
         // Convert gz to string
-        itoa((int)gz, numBuffer, 10);
+        IntToStr((int)gz, numBuffer);
         UART_SendString(numBuffer);
         UART_SendString(" Temp: ");
         
         // Convert temp to string (simple conversion for 2 decimal places)
         int temp_int = (int)temp;
         int temp_frac = (int)((temp - temp_int) * 100);
-        itoa(temp_int, numBuffer, 10);
+        IntToStr(temp_int, numBuffer);
         UART_SendString(numBuffer);
         UART_SendString(".");
         if (temp_frac < 10) {
             UART_SendString("0");
         }
-        itoa(temp_frac, numBuffer, 10);
+        IntToStr(temp_frac, numBuffer);
         UART_SendString(numBuffer);
         UART_SendString("\n");
         
         SysCtlDelay(SysCtlClockGet() / 10);
+    }
+}
+
+// Custom integer to string conversion function to replace itoa
+void IntToStr(int value, char *buffer) {
+    // Handle negative numbers
+    if (value < 0) {
+        *buffer++ = '-';
+        value = -value;
+    }
+    
+    // Find the number of digits
+    int temp = value;
+    int numDigits = 0;
+    
+    if (value == 0) {
+        numDigits = 1;
+    } else {
+        while (temp > 0) {
+            temp /= 10;
+            numDigits++;
+        }
+    }
+    
+    // Place the null terminator
+    buffer[numDigits] = '\0';
+    
+    // Fill in the digits from right to left
+    int i = numDigits - 1;
+    if (value == 0) {
+        buffer[0] = '0';
+    } else {
+        while (value > 0) {
+            buffer[i--] = '0' + (value % 10);
+            value /= 10;
+        }
     }
 }
 
