@@ -1,6 +1,10 @@
 import serial
 import time
 
+# Constants
+SENSITIVITY_FACTOR = 16384.0  # For ±2g range
+GRAVITY = 9.81  # Acceleration due to gravity in m/s²
+
 SERIAL_PORT = '/dev/ttyUSB0'  # Replace with your actual port (e.g., /dev/ttyACM0)
 BAUD_RATE = 115200
 
@@ -13,8 +17,8 @@ except Exception as e:
 
 try:
     while True:
-        if ser.in_waiting > 0:
-            data = ser.readline().decode('utf-8').strip()
+        if ser.in_waiting > 0:  # Check if data is available
+            data = ser.readline().decode('utf-8').strip()  # Read and decode the data
             print(f"Received: {data}")
 
             if data.startswith("Accel:") and "Gyro:" in data and "Temp:" in data:
@@ -22,13 +26,30 @@ try:
                 accel = parts[1].split(",")
                 gyro = parts[3].split(",")
                 temp = float(parts[5])
-                pitch = float(parts[7])
-                roll = float(parts[9])
+                pitch = parts[7]
+                roll = parts[9]
 
-                print(f"Accelerometer: X={accel[0]}, Y={accel[1]}, Z={accel[2]}")
+                # Convert raw accelerometer values to integers
+                ax_raw = int(accel[0])
+                ay_raw = int(accel[1])
+                az_raw = int(accel[2])
+
+                # Convert raw values to g-force
+                ax_g = ax_raw / SENSITIVITY_FACTOR
+                ay_g = ay_raw / SENSITIVITY_FACTOR
+                az_g = az_raw / SENSITIVITY_FACTOR
+
+                # Convert g-force to m/s²
+                ax_ms2 = ax_g * GRAVITY
+                ay_ms2 = ay_g * GRAVITY
+                az_ms2 = az_g * GRAVITY
+
+                # Print the parsed data
+                print(f"Accelerometer: X={ax_raw}, Y={ay_raw}, Z={az_raw}")
                 print(f"Gyroscope: X={gyro[0]}, Y={gyro[1]}, Z={gyro[2]}")
-                print(f"Temperature: {temp}°C")
-                print(f"Pitch: {pitch:.2f}°, Roll: {roll:.2f}°")
+                print(f"Temperature: {temp:.2f}°C")
+                print(f"Pitch: {pitch}°, Roll: {roll}°")
+                print(f"Acceleration (m/s²): X={ax_ms2:.2f}, Y={ay_ms2:.2f}, Z={az_ms2:.2f}")
 except KeyboardInterrupt:
     print("Exiting...")
 finally:
