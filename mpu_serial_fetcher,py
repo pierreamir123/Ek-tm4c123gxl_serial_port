@@ -1,17 +1,36 @@
 import serial
 import time
+import csv
+from datetime import datetime
 
-SERIAL_PORT = '/dev/ttyUSB0'  # Replace with your actual port (e.g., /dev/ttyACM0)
+SERIAL_PORT = '/dev/ttyUSB0'  # Replace with your actual port
 BAUD_RATE = 115200
+LOG_FILE = 'mpu6050_data.csv'
+
+def init_csv():
+    with open(LOG_FILE, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Timestamp', 'AccelX', 'AccelY', 'AccelZ', 'GyroX', 'GyroY', 'GyroZ', 'Temp'])
 
 try:
     ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
     print(f"Connected to {SERIAL_PORT} at {BAUD_RATE} baud.")
+    init_csv()
 except Exception as e:
     print(f"Error opening serial port: {e}")
     exit()
 
 try:
+    # Wait for initialization messages
+    while True:
+        if ser.in_waiting > 0:
+            data = ser.readline().decode('utf-8').strip()
+            print(f"Received: {data}")
+            if "System ready and waiting for data" in data:
+                print("Device initialized and ready for data reception")
+                break
+
+    # Main data reception loop
     while True:
         if ser.in_waiting > 0:
             data = ser.readline().decode('utf-8').strip()
@@ -19,14 +38,43 @@ try:
 
             if data.startswith("Accel:") and "Gyro:" in data and "Temp:" in data:
                 parts = data.split()
-                accel = parts[1].split(",")
-                gyro = parts[3].split(",")
+                accel_part = parts[1].split(",")
+                gyro_part = parts[3].split(",")
                 temp = float(parts[5])
-
-                print(f"Accelerometer: X={accel[0]}, Y={accel[1]}, Z={accel[2]}")
-                print(f"Gyroscope: X={gyro[0]}, Y={gyro[1]}, Z={gyro[2]}")
-                print(f"Temperature: {temp}°C")
+                
+                # Convert string values to integers
+                accel_x = int(accel_part[0])
+                accel_y = int(accel_part[1])
+                accel_z = int(accel_part[2])
+                
+                gyro_x = int(gyro_part[0])
+                gyro_y = int(gyro_part[1])
+                gyro_z = int(gyro_part[2])
+                
+                # Convert raw values to physical units (optional)
+                # MPU6050 default scale: ±2g for accel, ±250°/s for gyro
+                accel_x_g = accel_x / 16384.0  # Convert to g (±2g scale)
+                accel_y_g = accel_y / 16384.0
+                accel_z_g = accel_z / 16384.0
+                
+                gyro_x_dps = gyro_x / 131.0  # Convert to °/s (±250°/s scale)
+                gyro_y_dps = gyro_y / 131.0
+                gyro_z_dps = gyro_z / 131.0
+                
+                # Print formatted data
+                print(f"Accelerometer: X={accel_x} ({accel_x_g:.2f}g), Y={accel_y} ({accel_y_g:.2f}g), Z={accel_z} ({accel_z_g:.2f}g)")
+                print(f"Gyroscope: X={gyro_x} ({gyro_x_dps:.2f}°/s), Y={gyro_y} ({gyro_y_dps:.2f}°/s), Z={gyro_z} ({gyro_z_dps:.2f}°/s)")
+                print(f"Temperature: {temp:.2f}°C")
+                
+                # Log data to CSV
+                timestamp = datetime.now().isoformat()
+                with open(LOG_FILE, 'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow([timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, temp])
+                
 except KeyboardInterrupt:
     print("Exiting...")
+    # Send command to change sampling rate (example)
+    # ser.write(b'rate=100\n')
 finally:
     ser.close()
