@@ -32,7 +32,8 @@ void UARTIntHandler(void);
 
 int main(void) {
     // Set the clocking to run directly from the crystal
-    g_ui32SysClock = SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
+    SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
+    g_ui32SysClock = SysCtlClockGet();
     
     I2C_Init();
     UART_Init();
