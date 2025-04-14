@@ -43,10 +43,53 @@ int main(void) {
         int16_t temp_raw = (I2C_ReadByte(0x41) << 8) | I2C_ReadByte(0x42);
         float temp = (temp_raw / 340.0f) + 36.53f;
 
-        char buffer[128];
-        snprintf(buffer, sizeof(buffer), "Accel: %d,%d,%d Gyro: %d,%d,%d Temp: %.2f\n",(int)ax, (int)ay, (int)az, (int)gx, (int)gy, (int)gz, temp);
-
-        UART_SendString(buffer);
+        // Send data without using snprintf
+        UART_SendString("Accel: ");
+        
+        char numBuffer[8];
+        // Convert ax to string
+        itoa((int)ax, numBuffer, 10);
+        UART_SendString(numBuffer);
+        UART_SendString(",");
+        
+        // Convert ay to string
+        itoa((int)ay, numBuffer, 10);
+        UART_SendString(numBuffer);
+        UART_SendString(",");
+        
+        // Convert az to string
+        itoa((int)az, numBuffer, 10);
+        UART_SendString(numBuffer);
+        UART_SendString(" Gyro: ");
+        
+        // Convert gx to string
+        itoa((int)gx, numBuffer, 10);
+        UART_SendString(numBuffer);
+        UART_SendString(",");
+        
+        // Convert gy to string
+        itoa((int)gy, numBuffer, 10);
+        UART_SendString(numBuffer);
+        UART_SendString(",");
+        
+        // Convert gz to string
+        itoa((int)gz, numBuffer, 10);
+        UART_SendString(numBuffer);
+        UART_SendString(" Temp: ");
+        
+        // Convert temp to string (simple conversion for 2 decimal places)
+        int temp_int = (int)temp;
+        int temp_frac = (int)((temp - temp_int) * 100);
+        itoa(temp_int, numBuffer, 10);
+        UART_SendString(numBuffer);
+        UART_SendString(".");
+        if (temp_frac < 10) {
+            UART_SendString("0");
+        }
+        itoa(temp_frac, numBuffer, 10);
+        UART_SendString(numBuffer);
+        UART_SendString("\n");
+        
         SysCtlDelay(SysCtlClockGet() / 10);
     }
 }
