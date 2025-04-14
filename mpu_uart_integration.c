@@ -41,13 +41,8 @@ int main(void) {
     // Enable processor interrupts
     ROM_IntMasterEnable();
     
-    // Send initialization message to confirm UART connection is active
-    UART_SendString((uint8_t *)"MPU6050 UART Connection Initialized\r\n", 38);
-    UART_SendString((uint8_t *)"System ready and waiting for data...\r\n", 39);
-    
     // Wake up MPU6050
     I2C_WriteByte(0x6B, 0x00);
-    UART_SendString((uint8_t *)"MPU6050 sensor activated\r\n", 27);
 
     while (1) {
         int16_t ax = (I2C_ReadByte(0x3B) << 8) | I2C_ReadByte(0x3C);
@@ -61,101 +56,6 @@ int main(void) {
         int16_t temp_raw = (I2C_ReadByte(0x41) << 8) | I2C_ReadByte(0x42);
         float temp = (temp_raw / 340.0f) + 36.53f;
 
-        // Build data string
-        char dataBuffer[128];
-        char *ptr = dataBuffer;
-        
-        // Copy "Accel: " to buffer
-        const char *accelStr = "Accel: ";
-        while (*accelStr) {
-            *ptr++ = *accelStr++;
-        }
-        
-        char numBuffer[8];
-        // Convert ax to string
-        IntToStr((int)ax, numBuffer);
-        char *numPtr = numBuffer;
-        while (*numPtr) {
-            *ptr++ = *numPtr++;
-        }
-        *ptr++ = ',';
-        
-        // Convert ay to string
-        IntToStr((int)ay, numBuffer);
-        numPtr = numBuffer;
-        while (*numPtr) {
-            *ptr++ = *numPtr++;
-        }
-        *ptr++ = ',';
-        
-        // Convert az to string
-        IntToStr((int)az, numBuffer);
-        numPtr = numBuffer;
-        while (*numPtr) {
-            *ptr++ = *numPtr++;
-        }
-        
-        // Copy " Gyro: " to buffer
-        const char *gyroStr = " Gyro: ";
-        while (*gyroStr) {
-            *ptr++ = *gyroStr++;
-        }
-        
-        // Convert gx to string
-        IntToStr((int)gx, numBuffer);
-        numPtr = numBuffer;
-        while (*numPtr) {
-            *ptr++ = *numPtr++;
-        }
-        *ptr++ = ',';
-        
-        // Convert gy to string
-        IntToStr((int)gy, numBuffer);
-        numPtr = numBuffer;
-        while (*numPtr) {
-            *ptr++ = *numPtr++;
-        }
-        *ptr++ = ',';
-        
-        // Convert gz to string
-        IntToStr((int)gz, numBuffer);
-        numPtr = numBuffer;
-        while (*numPtr) {
-            *ptr++ = *numPtr++;
-        }
-        
-        // Copy " Temp: " to buffer
-        const char *tempStr = " Temp: ";
-        while (*tempStr) {
-            *ptr++ = *tempStr++;
-        }
-        
-        // Convert temp to string (simple conversion for 2 decimal places)
-        int temp_int = (int)temp;
-        int temp_frac = (int)((temp - temp_int) * 100);
-        IntToStr(temp_int, numBuffer);
-        numPtr = numBuffer;
-        while (*numPtr) {
-            *ptr++ = *numPtr++;
-        }
-        *ptr++ = '.';
-        
-        if (temp_frac < 10) {
-            *ptr++ = '0';
-        }
-        
-        IntToStr(temp_frac, numBuffer);
-        numPtr = numBuffer;
-        while (*numPtr) {
-            *ptr++ = *numPtr++;
-        }
-        
-        *ptr++ = '\n';
-        *ptr = '\0';
-        
-        // Send the complete data string
-        UART_SendString((uint8_t *)dataBuffer, ptr - dataBuffer);
-        
         // Check if we received any commands
         if (g_receiveComplete) {
             // Process received command here
@@ -279,9 +179,6 @@ void UARTIntHandler(void) {
     while (ROM_UARTCharsAvail(UART0_BASE)) {
         // Read the next character from the UART
         char receivedChar = ROM_UARTCharGetNonBlocking(UART0_BASE);
-        
-        // Echo the character back to the UART
-        ROM_UARTCharPutNonBlocking(UART0_BASE, receivedChar);
         
         // Store the character in our buffer
         if (g_receiveIndex < sizeof(g_receiveBuffer) - 1) {
