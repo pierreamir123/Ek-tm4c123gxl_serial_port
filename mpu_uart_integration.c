@@ -26,7 +26,6 @@ void I2C_Init(void);
 void UART_Init(void);
 uint8_t I2C_ReadByte(uint8_t reg);
 void I2C_WriteByte(uint8_t reg, uint8_t value);
-void UART_SendString(const uint8_t *str, uint32_t len);
 void IntToStr(int value, char *buffer);
 void UARTIntHandler(void);
 
@@ -58,8 +57,6 @@ int main(void) {
 
         // Check if we received any commands
         if (g_receiveComplete) {
-            // Process received command here
-            // For example, you could add commands to change sampling rate
             g_receiveComplete = false;
             g_receiveIndex = 0;
         }
@@ -111,7 +108,7 @@ void I2C_Init(void) {
     GPIOPinConfigure(GPIO_PB3_I2C0SDA);
     GPIOPinTypeI2C(GPIO_PORTB_BASE, GPIO_PIN_3);
     GPIOPinTypeI2CSCL(GPIO_PORTB_BASE, GPIO_PIN_2);
-    I2CMasterInitExpClk(I2C0_BASE, SysCtlClockGet(), false);
+    I2CMasterInitExpClk(I极I2C0_BASE, SysCtlClockGet(), false);
 }
 
 void UART_Init(void) {
@@ -155,14 +152,6 @@ void I2C_WriteByte(uint8_t reg, uint8_t value) {
     I2CMasterDataPut(I2C0_BASE, value);
     I2CMasterControl(I2C0_BASE, I2C_MASTER_CMD_BURST_SEND_FINISH);
     while (I2CMasterBusy(I2C0_BASE));
-}
-
-void UART_SendString(const uint8_t *str, uint32_t len) {
-    // Loop while there are more characters to send
-    for (uint32_t i = 0; i < len; i++) {
-        // Write the next character to the UART
-        ROM_UARTCharPut(UART0_BASE, str[i]);
-    }
 }
 
 // The UART interrupt handler
