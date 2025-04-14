@@ -30,14 +30,9 @@ try:
                 roll = parts[9]
 
                 # Convert raw accelerometer values to integers
-                ax_raw = int(accel[0])
-                ay_raw = int(accel[1])
-                az_raw = int(accel[2])
-
-                # Convert raw values to g-force
-                ax_g = ax_raw / SENSITIVITY_FACTOR
-                ay_g = ay_raw / SENSITIVITY_FACTOR
-                az_g = az_raw / SENSITIVITY_FACTOR
+                ax_g = int(accel[0])
+                ay_g = int(accel[1])
+                az_g = int(accel[2])
 
                 # Convert g-force to m/s²
                 ax_ms2 = ax_g * GRAVITY
