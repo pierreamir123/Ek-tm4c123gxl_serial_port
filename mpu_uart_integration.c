@@ -3,34 +3,50 @@
 #include <stdio.h>
 #include <string.h>
 #include "inc/hw_memmap.h"
+#include "inc/hw_ints.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/gpio.h"
 #include "driverlib/pin_map.h"
 #include "driverlib/i2c.h"
 #include "driverlib/uart.h"
+#include "driverlib/interrupt.h"
+#include "driverlib/rom.h"
+#include "driverlib/rom_map.h"
 
 #define MPU6050_ADDR 0x68  // Default I2C address of MPU6050
+
+// Global variables
+uint32_t g_ui32SysClock;
+char g_receiveBuffer[128];
+volatile uint32_t g_receiveIndex = 0;
+volatile bool g_receiveComplete = false;
 
 // Function prototypes
 void I2C_Init(void);
 void UART_Init(void);
 uint8_t I2C_ReadByte(uint8_t reg);
 void I2C_WriteByte(uint8_t reg, uint8_t value);
-void UART_SendString(const char *str);
+void UART_SendString(const uint8_t *str, uint32_t len);
 void IntToStr(int value, char *buffer);
+void UARTIntHandler(void);
 
 int main(void) {
-    SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
+    // Set the clocking to run directly from the crystal
+    g_ui32SysClock = SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
+    
     I2C_Init();
     UART_Init();
     
+    // Enable processor interrupts
+    ROM_IntMasterEnable();
+    
     // Send initialization message to confirm UART connection is active
-    UART_SendString("MPU6050 UART Connection Initialized\r\n");
-    UART_SendString("System ready and waiting for data...\r\n");
+    UART_SendString((uint8_t *)"MPU6050 UART Connection Initialized\r\n", 38);
+    UART_SendString((uint8_t *)"System ready and waiting for data...\r\n", 39);
     
     // Wake up MPU6050
     I2C_WriteByte(0x6B, 0x00);
-    UART_SendString("MPU6050 sensor activated\r\n");
+    UART_SendString((uint8_t *)"MPU6050 sensor activated\r\n", 27);
 
     while (1) {
         int16_t ax = (I2C_ReadByte(0x3B) << 8) | I2C_ReadByte(0x3C);
@@ -44,54 +60,110 @@ int main(void) {
         int16_t temp_raw = (I2C_ReadByte(0x41) << 8) | I2C_ReadByte(0x42);
         float temp = (temp_raw / 340.0f) + 36.53f;
 
-        // Send data without using snprintf
-        UART_SendString("Accel: ");
+        // Build data string
+        char dataBuffer[128];
+        char *ptr = dataBuffer;
+        
+        // Copy "Accel: " to buffer
+        const char *accelStr = "Accel: ";
+        while (*accelStr) {
+            *ptr++ = *accelStr++;
+        }
         
         char numBuffer[8];
         // Convert ax to string
         IntToStr((int)ax, numBuffer);
-        UART_SendString(numBuffer);
-        UART_SendString(",");
+        char *numPtr = numBuffer;
+        while (*numPtr) {
+            *ptr++ = *numPtr++;
+        }
+        *ptr++ = ',';
         
         // Convert ay to string
         IntToStr((int)ay, numBuffer);
-        UART_SendString(numBuffer);
-        UART_SendString(",");
+        numPtr = numBuffer;
+        while (*numPtr) {
+            *ptr++ = *numPtr++;
+        }
+        *ptr++ = ',';
         
         // Convert az to string
         IntToStr((int)az, numBuffer);
-        UART_SendString(numBuffer);
-        UART_SendString(" Gyro: ");
+        numPtr = numBuffer;
+        while (*numPtr) {
+            *ptr++ = *numPtr++;
+        }
+        
+        // Copy " Gyro: " to buffer
+        const char *gyroStr = " Gyro: ";
+        while (*gyroStr) {
+            *ptr++ = *gyroStr++;
+        }
         
         // Convert gx to string
         IntToStr((int)gx, numBuffer);
-        UART_SendString(numBuffer);
-        UART_SendString(",");
+        numPtr = numBuffer;
+        while (*numPtr) {
+            *ptr++ = *numPtr++;
+        }
+        *ptr++ = ',';
         
         // Convert gy to string
         IntToStr((int)gy, numBuffer);
-        UART_SendString(numBuffer);
-        UART_SendString(",");
+        numPtr = numBuffer;
+        while (*numPtr) {
+            *ptr++ = *numPtr++;
+        }
+        *ptr++ = ',';
         
         // Convert gz to string
         IntToStr((int)gz, numBuffer);
-        UART_SendString(numBuffer);
-        UART_SendString(" Temp: ");
+        numPtr = numBuffer;
+        while (*numPtr) {
+            *ptr++ = *numPtr++;
+        }
+        
+        // Copy " Temp: " to buffer
+        const char *tempStr = " Temp: ";
+        while (*tempStr) {
+            *ptr++ = *tempStr++;
+        }
         
         // Convert temp to string (simple conversion for 2 decimal places)
         int temp_int = (int)temp;
         int temp_frac = (int)((temp - temp_int) * 100);
         IntToStr(temp_int, numBuffer);
-        UART_SendString(numBuffer);
-        UART_SendString(".");
-        if (temp_frac < 10) {
-            UART_SendString("0");
+        numPtr = numBuffer;
+        while (*numPtr) {
+            *ptr++ = *numPtr++;
         }
-        IntToStr(temp_frac, numBuffer);
-        UART_SendString(numBuffer);
-        UART_SendString("\n");
+        *ptr++ = '.';
         
-        SysCtlDelay(SysCtlClockGet() / 10);
+        if (temp_frac < 10) {
+            *ptr++ = '0';
+        }
+        
+        IntToStr(temp_frac, numBuffer);
+        numPtr = numBuffer;
+        while (*numPtr) {
+            *ptr++ = *numPtr++;
+        }
+        
+        *ptr++ = '\n';
+        *ptr = '\0';
+        
+        // Send the complete data string
+        UART_SendString((uint8_t *)dataBuffer, ptr - dataBuffer);
+        
+        // Check if we received any commands
+        if (g_receiveComplete) {
+            // Process received command here
+            // For example, you could add commands to change sampling rate
+            g_receiveComplete = false;
+            g_receiveIndex = 0;
+        }
+        
+        SysCtlDelay(g_ui32SysClock / 10);
     }
 }
 
@@ -142,13 +214,22 @@ void I2C_Init(void) {
 }
 
 void UART_Init(void) {
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+    // Enable the peripherals used by this example
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+    
+    // Set GPIO A0 and A1 as UART pins
     GPIOPinConfigure(GPIO_PA0_U0RX);
     GPIOPinConfigure(GPIO_PA1_U0TX);
-    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-    UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
+    ROM_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    
+    // Configure the UART for 115,200, 8-N-1 operation
+    ROM_UARTConfigSetExpClk(UART0_BASE, g_ui32SysClock, 115200,
                         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE));
+    
+    // Enable the UART interrupt
+    ROM_IntEnable(INT_UART0);
+    ROM_UARTIntEnable(UART0_BASE, UART_INT_RX | UART_INT_RT);
 }
 
 uint8_t I2C_ReadByte(uint8_t reg) {
@@ -175,8 +256,41 @@ void I2C_WriteByte(uint8_t reg, uint8_t value) {
     while (I2CMasterBusy(I2C0_BASE));
 }
 
-void UART_SendString(const char *str) {
-    while (*str) {
-        UARTCharPut(UART0_BASE, *str++);
+void UART_SendString(const uint8_t *str, uint32_t len) {
+    // Loop while there are more characters to send
+    for (uint32_t i = 0; i < len; i++) {
+        // Write the next character to the UART
+        ROM_UARTCharPut(UART0_BASE, str[i]);
+    }
+}
+
+// The UART interrupt handler
+void UARTIntHandler(void) {
+    uint32_t ui32Status;
+
+    // Get the interrupt status
+    ui32Status = ROM_UARTIntStatus(UART0_BASE, true);
+
+    // Clear the asserted interrupts
+    ROM_UARTIntClear(UART0_BASE, ui32Status);
+
+    // Loop while there are characters in the receive FIFO
+    while (ROM_UARTCharsAvail(UART0_BASE)) {
+        // Read the next character from the UART
+        char receivedChar = ROM_UARTCharGetNonBlocking(UART0_BASE);
+        
+        // Echo the character back to the UART
+        ROM_UARTCharPutNonBlocking(UART0_BASE, receivedChar);
+        
+        // Store the character in our buffer
+        if (g_receiveIndex < sizeof(g_receiveBuffer) - 1) {
+            g_receiveBuffer[g_receiveIndex++] = receivedChar;
+            
+            // Check if this is the end of a command (newline)
+            if (receivedChar == '\n' || receivedChar == '\r') {
+                g_receiveBuffer[g_receiveIndex] = '\0';  // Null terminate
+                g_receiveComplete = true;
+            }
+        }
     }
 }
