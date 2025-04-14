@@ -46,6 +46,8 @@ The EK-TM4C123GXL reads data from the MPU6050 via I2C and sends it over UART. Be
 ```c
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
 #include "inc/hw_memmap.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/gpio.h"
@@ -66,9 +68,14 @@ int main(void) {
     SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
     I2C_Init();
     UART_Init();
-
+    
+    // Send initialization message to confirm UART connection is active
+    UART_SendString("MPU6050 UART Connection Initialized\r\n");
+    UART_SendString("System ready and waiting for data...\r\n");
+    
     // Wake up MPU6050
     I2C_WriteByte(0x6B, 0x00);
+    UART_SendString("MPU6050 sensor activated\r\n");
 
     while (1) {
         int16_t ax = (I2C_ReadByte(0x3B) << 8) | I2C_ReadByte(0x3C);
@@ -84,7 +91,6 @@ int main(void) {
 
         char buffer[128];
         snprintf(buffer, sizeof(buffer), "Accel: %d,%d,%d Gyro: %d,%d,%d Temp: %.2f\n",(int)ax, (int)ay, (int)az, (int)gx, (int)gy, (int)gz, temp);
-
 
         UART_SendString(buffer);
         SysCtlDelay(SysCtlClockGet() / 10);
