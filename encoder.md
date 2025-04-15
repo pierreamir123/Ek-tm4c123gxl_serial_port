@@ -7,8 +7,16 @@
     ```
 
 ---
+### Wiring Diagram:
+| Tiva C Pin       | Rotary Encoder Pin | Raspberry Pi Pin |
+|------------------|--------------------|------------------|
+| PF0 (GPIO_PIN_0) | Encoder A          | -                |
+| PF1 (GPIO_PIN_1) | Encoder B          | -                |
+| GND              | GND                | GND              |
+| UART TX (PA1)    | -                  | RX (GPIO 15)     |
+| UART RX (PA0)    | -                  | TX (GPIO 14)     |
 
-
+---
 ###  Run Python Script
 1. Ensure the Tiva board is connected to the host PC via UART.
 2. Run the Python script to visualize the data:
